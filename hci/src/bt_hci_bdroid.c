@@ -316,6 +316,8 @@ static void postload(TRANSAC transac)
 /** Transmit frame */
 static int transmit_buf(TRANSAC transac, char *p_buf, int len)
 {
+    BTHCDBG("transmit_buf");
+    
     utils_enqueue(&tx_q, (void *) transac);
 
     bthc_signal_event(HC_EVENT_TX);
@@ -385,8 +387,11 @@ static void cleanup( void )
     lib_running = 0;
 
     lpm_cleanup();
+
     userial_close();
+
     p_hci_if->cleanup();
+
     utils_cleanup();
 
     /* Calling vendor-specific part */
@@ -461,7 +466,7 @@ static void *bt_hc_worker_thread(void *arg)
 
         if (events & HC_EVENT_PRELOAD)
         {
-            userial_open(USERIAL_PORT_1);
+            if (userial_open(USERIAL_PORT_1) == FALSE) break;
 
             /* Calling vendor-specific part */
             if (bt_vnd_if)
@@ -522,8 +527,10 @@ static void *bt_hc_worker_thread(void *arg)
                         tx_cmd_pkts_pending = TRUE;
                         p_next_msg = utils_getnext(p_next_msg);
                         continue;
-                    }
+                    }                    
+#ifndef HCI_H2
                     sending_hci_cmd_pkts_count++;
+#endif
                 }
 
                 p_msg = p_next_msg;
